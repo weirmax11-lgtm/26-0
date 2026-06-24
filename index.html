@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>26-0 // The Ultimate VFL/AFL Drafting Challenge</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-neutral-950 text-neutral-100 min-h-screen font-sans antialiased">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <header class="text-center mb-8 border-b border-neutral-800 pb-6">
+            <h1 class="text-4xl font-black tracking-tighter uppercase sm:text-5xl">26 — 0</h1>
+            <p class="text-neutral-400 mt-2 tracking-wide text-sm font-medium uppercase">Can you draft an undefeated VFL/AFL squad?</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2 space-y-6">
+                
+                <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+                    <h2 class="text-lg font-bold uppercase tracking-wider text-neutral-400 mb-4">Draft Control Panel</h2>
+                    
+                    <div id="spinner-view" class="space-y-4">
+                        <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-6 text-center">
+                            <p class="text-xs font-semibold uppercase tracking-widest text-neutral-500 mb-1">Current Spin</p>
+                            <div id="current-spin-display" class="text-2xl font-black uppercase text-amber-400 tracking-tight">
+                                Spin to Open a Draft Window
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button id="btn-spin" class="flex-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold uppercase tracking-wider py-3 px-4 rounded-lg transition-all duration-200 cursor-pointer text-center">
+                                Spin Team & Era
+                            </button>
+                            <button id="btn-reroll" disabled class="flex-1 border border-neutral-700 text-neutral-400 hover:text-neutral-200 disabled:opacity-40 disabled:hover:text-neutral-400 font-bold uppercase tracking-wider py-3 px-4 rounded-lg transition-all duration-200 cursor-pointer text-center">
+                                Re-roll (1 Left)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="selector-view" class="hidden mt-6 pt-6 border-t border-neutral-800 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">Assign to Available Roster Slot</label>
+                            <select id="slot-select" class="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-sm focus:outline-none focus:border-amber-500 text-neutral-200"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">Select Player / Coach</label>
+                            <select id="player-select" class="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-sm focus:outline-none focus:border-amber-500 text-neutral-200"></select>
+                        </div>
+                        <button id="btn-lock" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-wider py-3 px-4 rounded-lg transition-all duration-200 cursor-pointer text-center">
+                            Lock Choice Into Roster
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl">
+                    <h2 class="text-lg font-bold uppercase tracking-wider text-neutral-400 mb-4">Roster Field Layout</h2>
+                    <div id="roster-grid" class="space-y-4">
+                        </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 shadow-xl sticky top-6">
+                    <h2 class="text-lg font-bold uppercase tracking-wider text-neutral-400 mb-4">Season Simulation Engine</h2>
+                    
+                    <div id="sim-status" class="text-center py-8 bg-neutral-950 border border-neutral-800 rounded-lg p-4 space-y-4">
+                        <p class="text-sm text-neutral-400">Complete your 18-man on-field roster and select a Senior Coach to unlock the 26-game match simulation engine.</p>
+                        <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+                            Progress: <span id="progress-count">0</span> / 19 Slots
+                        </div>
+                        <button id="btn-simulate" disabled class="w-full bg-neutral-800 text-neutral-500 disabled:opacity-50 font-bold uppercase tracking-wider py-4 px-4 rounded-lg cursor-not-allowed transition-all duration-200 text-center">
+                            Simulate 26-Game Season
+                        </button>
+                    </div>
+
+                    <div id="ticker-box" class="hidden mt-4 bg-neutral-950 border border-neutral-800 rounded-lg p-4 h-64 overflow-y-auto text-xs font-mono space-y-1.5 scrollbar-thin">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Database of historical VFL/AFL clubs, eras, and key personnel
+        const clubDatabase = [
+            {
+                id: "brisbane",
+                name: "Brisbane Lions",
+                era: "2000s",
+                players: [
+                    { name: "Jonathan Brown", pos: "Forward", rating: 91, stat: "Elite Contested Marks" },
+                    { name: "Michael Voss", pos: "Midfield", rating: 94, stat: "30+ Disposals / Crucial Clearances" },
+                    { name: "Simon Black", pos: "Midfield", rating: 92, stat: "Elite Contested Possessions" },
+                    { name: "Jason Akermanis", pos: "Midfield", rating: 90, stat: "Freakish Goals from Boundary" },
+                    { name: "Justin Leppitsch", pos: "Defender", rating: 89, stat: "High Intercept Dominance" },
+                    { name: "Chris Johnson", pos: "Defender", rating: 88, stat: "Rebound 50 specialist" }
+                ],
+                coaches: [{ name: "Leigh Matthews", rating: 95, stat: "3x Premiership Coach" }]
+            },
+            {
+                id: "hawthorn",
+                name: "Hawthorn",
+                era: "1980s",
+                players: [
+                    { name: "Jason Dunstall", pos: "Forward", rating: 96, stat: "100+ Goal Season Archetype" },
+                    { name: "Dermott Brereton", pos: "Forward", rating: 91, stat: "Aggressive Contest Presence" },
+                    { name: "Gary Ayres", pos: "Defender", rating: 90, stat: "2x Norm Smith Medalist Back" },
+                    { name: "Chris Langford", pos: "Defender", rating: 89, stat: "Lockdown Full Back Specialist" },
+                    { name: "Robert DiPierdomenico", pos: "Midfield", rating: 89, stat: "High Metres Gained" },
+                    { name: "Michael Tuck", pos: "Midfield", rating: 91, stat: "Engine Room Durability" }
+                ],
+                coaches: [{ name: "Allan Jeans", rating: 93, stat: "Legendary 1980s Tactician" }]
+            },
+            {
+                id: "geelong",
+                name: "Geelong",
+                era: "2010s",
+                players: [
+                    { name: "Gary Ablett Jr", pos: "Midfield", rating: 97, stat: "Elite Accumulator / 40+ Disposals" },
+                    { name: "Joel Selwood", pos: "Midfield", rating: 93, stat: "Elite High Tackle / Clearances" },
+                    { name: "Tom Hawkins", pos: "Forward", rating: 90, stat: "Dominant Power Forward Targets" },
+                    { name: "Harry Taylor", pos: "Defender", rating: 89, stat: "High Reading Intercept Marks" },
+                    { name: "Corey Enright", pos: "Defender", rating: 91, stat: "Flawless Rebound Out of 50" },
+                    { name: "Patrick Dangerfield", pos: "Midfield", rating: 94, stat: "Explosive Inside Contests" }
+                ],
+                coaches: [{ name: "Chris Scott", rating: 89, stat: "Consistent High-Win Ratio" }]
+            },
+            {
+                id: "richmond",
+                name: "Richmond",
+                era: "2010s",
+                players: [
+                    { name: "Dustin Martin", pos: "Midfield", rating: 96, stat: "Elite Inside-Forward / Match Winner" },
+                    { name: "Alex Rance", pos: "Defender", rating: 94, stat: "All-Time Great Intercept Defender" },
+                    { name: "Jack Riewoldt", pos: "Forward", rating: 89, stat: "Multiple Coleman Medal Target" },
+                    { name: "Trent Cotchin", pos: "Midfield", rating: 90, stat: "High Pressure Tackle Metrics" },
+                    { name: "Dylan Grimes", pos: "Defender", rating: 88, stat: "Elite One-on-One Spoils" },
+                    { name: "Shane Edwards", pos: "Midfield", rating: 87, stat: "Elite Creative Goal Assists" }
+                ],
+                coaches: [{ name: "Damien Hardwick", rating: 90, stat: "System-Driven Pressure Coach" }]
+            },
+            {
+                id: "sydney",
+                name: "Sydney Swans",
+                era: "2000s",
+                players: [
+                    { name: "Barry Hall", pos: "Forward", rating: 90, stat: "Aggressive Key Target Structure" },
+                    { name: "Brett Kirk", pos: "Midfield", rating: 88, stat: "Elite Shutdown Tagger / Hard Ball" },
+                    { name: "Adam Goodes", pos: "Midfield", rating: 94, stat: "Dual Brownlow Versatility Matrix" },
+                    { name: "Leo Barry", pos: "Defender", rating: 89, stat: "Clutch Pack Intercept Marks" },
+                    { name: "Michael O'Loughlin", pos: "Forward", rating: 88, stat: "Elite Ground-Ball Agility Forward" },
+                    { name: "Tadhg Kennelly", pos: "Defender", rating: 86, stat: "Explosive Run Out of Defence" }
+                ],
+                coaches: [{ name: "Paul Roos", rating: 91, stat: "Pioneering Defensive Blueprint" }]
+            }
+        ];
+
+        // Roster Slot Definitions
+        const positions = [
+            { id: "F1", line: "Forward", label: "Full Forward" },
+            { id: "F2", line: "Forward", label: "Forward Pocket Left" },
+            { id: "F3", line: "Forward", label: "Forward Pocket Right" },
+            { id: "HF1", line: "Forward", label: "Center Half Forward" },
+            { id: "HF2", line: "Forward", label: "Half Forward Flank Left" },
+            { id: "HF3", line: "Forward", label: "Half Forward Flank Right" },
+            { id: "M1", line: "Midfield", label: "Center" },
+            { id: "M2", line: "Midfield", label: "Wing Left" },
+            { id: "M3", line: "Midfield", label: "Wing Right" },
+            { id: "M4", line: "Midfield", label: "Ruck" },
+            { id: "M5", line: "Midfield", label: "Ruck Rover" },
+            { id: "M6", line: "Midfield", label: "Rover" },
+            { id: "HB1", line: "Defender", label: "Center Half Back" },
+            { id: "HB2", line: "Defender", label: "Half Back Flank Left" },
+            { id: "HB3", line: "Defender", label: "Half Back Flank Right" },
+            { id: "B1", line: "Defender", label: "Full Back" },
+            { id: "B2", line: "Defender", label: "Back Pocket Left" },
+            { id: "B3", line: "Defender", label: "Back Pocket Right" },
+            { id: "COACH", line: "Coach", label: "Senior Coach" }
+        ];
+
+        // Active State variables
+        let currentRoster = {}; 
+        let currentSpin = null;
+        let rerollsLeft = 1;
+
+        // Elements
+        const btnSpin = document.getElementById('btn-spin');
+        const btnReroll = document.getElementById('btn-reroll');
+        const btnLock = document.getElementById('btn-lock');
+        const btnSimulate = document.getElementById('btn-simulate');
+        const currentSpinDisplay = document.getElementById('current-spin-display');
+        const selectorView = document.getElementById('selector-view');
+        const slotSelect = document.getElementById('slot-select');
+        const playerSelect = document.getElementById('player-select');
+        const rosterGrid = document.getElementById('roster-grid');
+        const progressCount = document.getElementById('progress-count');
+        const simStatus = document.getElementById('sim-status');
+        const tickerBox = document.getElementById('ticker-box');
+
+        // Setup Roster UI Grid
+        function renderRoster() {
+            rosterGrid.innerHTML = '';
+            const lines = ["Coach", "Forward", "Midfield", "Defender"];
+            
+            lines.forEach(line => {
+                const lineContainer = document.createElement('div');
+                lineContainer.className = "border border-neutral-800 bg-neutral-950 p-4 rounded-lg";
+                
+                const heading = document.createElement('h3');
+                heading.className = "text-xs font-black uppercase text-neutral-500 tracking-widest mb-3 border-b border-neutral-900 pb-1";
+                heading.innerText = `${line} Line`;
+                lineContainer.appendChild(heading);
+                
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-1 md:grid-cols-3 gap-3";
+                
+                positions.filter(p => p.line === line).forEach(pos => {
+                    const card = document.createElement('div');
+                    card.className = "p-3 rounded border text-xs flex flex-col justify-between h-20 transition-all duration-200 ";
+                    
+                    if (currentRoster[pos.id]) {
+                        const selection = currentRoster[pos.id];
+                        card.className += "border-emerald-800 bg-emerald-950/30";
+                        card.innerHTML = `
+                            <div>
+                                <div class="font-bold text-neutral-200 uppercase">${selection.name}</div>
+                                <div class="text-[10px] text-emerald-400 font-medium">${selection.club} (${selection.era})</div>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-neutral-500 font-semibold mt-1">${pos.label}</div>
+                        `;
+                    } else {
+                        card.className += "border-neutral-800 bg-neutral-900/50 opacity-60";
+                        card.innerHTML = `
+                            <div class="text-neutral-500 italic">Unfilled Slot</div>
+                            <div class="text-[10px] uppercase tracking-wider text-neutral-500 font-semibold mt-1">${pos.label}</div>
+                        `;
+                    }
+                    grid.appendChild(card);
+                });
+                
+                lineContainer.appendChild(grid);
+                rosterGrid.appendChild(lineContainer);
+            });
+
+            // Handle Progress Metrics
+            const filledCount = Object.keys(currentRoster).length;
+            progressCount.innerText = filledCount;
+            if (filledCount === 19) {
+                btnSimulate.disabled = false;
+                btnSimulate.className = "w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold uppercase tracking-wider py-4 px-4 rounded-lg cursor-pointer transition-all duration-200 text-center animate-pulse";
+                btnSpin.disabled = true;
+                btnSpin.className = "hidden";
+            }
+        }
+
+        // Execution of the Randomizing Spin Event
+        function performSpin() {
+            const randomIndex = Math.floor(Math.random() * clubDatabase.length);
+            currentSpin = clubDatabase[randomIndex];
+            
+            currentSpinDisplay.innerText = `${currentSpin.name} (${currentSpin.era})`;
+            selectorView.classList.remove('hidden');
+            
+            // Build out open slots options filtered dynamically
+            slotSelect.innerHTML = '';
+            let openSlotsAvailable = false;
+            
+            positions.forEach(pos => {
+                if (!currentRoster[pos.id]) {
+                    openSlotsAvailable = true;
+                    const opt = document.createElement('option');
+                    opt.value = pos.id;
+                    opt.innerText = pos.label;
+                    slotSelect.appendChild(opt);
+                }
+            });
+
+            if (!openSlotsAvailable) {
+                alert("Your entire playing list is completely finalized!");
+                return;
+            }
+
+            handleSlotChange();
+            btnSpin.disabled = true;
+        }
+
+        // Handle structural synchronization on slot selection change
+        function handleSlotChange() {
+            const selectedSlotId = slotSelect.value;
+            const targetPos = positions.find(p => p.id === selectedSlotId);
+            playerSelect.innerHTML = '';
+
+            if (targetPos.line === "Coach") {
+                currentSpin.coaches.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify({ name: c.name, rating: c.rating, type: 'coach' });
+                    opt.innerText = `[Coach] ${c.name} - Rating: ${c.rating}`;
+                    playerSelect.appendChild(opt);
+                });
+            } else {
+                const eligiblePool = currentSpin.players.filter(p => p.pos === targetPos.line);
+                if (eligiblePool.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.innerText = "No positional specialists in this era spin";
+                    opt.disabled = true;
+                    playerSelect.appendChild(opt);
+                } else {
+                    eligiblePool.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = JSON.stringify({ name: p.name, rating: p.rating, type: 'player' });
+                        opt.innerText = `${p.name} (${p.stat}) - Rating: ${p.rating}`;
+                        playerSelect.appendChild(opt);
+                    });
+                }
+            }
+        }
+
+        // Event Hook Listeners
+        btnSpin.addEventListener('click', performSpin);
+        slotSelect.addEventListener('change', handleSlotChange);
+
+        btnReroll.addEventListener('click', () => {
+            if (rerollsLeft > 0) {
+                rerollsLeft--;
+                btnReroll.innerText = "Re-roll (0 Left)";
+                btnReroll.disabled = true;
+                performSpin();
+            }
+        });
+
+        btnLock.addEventListener('click', () => {
+            if (!playerSelect.value) return;
+            
+            const selectedSlotId = slotSelect.value;
+            const parsedSelection = JSON.parse(playerSelect.value);
+            
+            currentRoster[selectedSlotId] = {
+                name: parsedSelection.name,
+                rating: parsedSelection.rating,
+                club: currentSpin.name,
+                era: currentSpin.era
+            };
+
+            // Reset UI components back to ready state
+            selectorView.classList.add('hidden');
+            currentSpinDisplay.innerText = "Spin to Open a Draft Window";
+            btnSpin.disabled = false;
+            
+            renderRoster();
+        });
+
+        // Match Simulation Computation Engine
+        btnSimulate.addEventListener('click', () => {
+            btnSimulate.disabled = true;
+            tickerBox.classList.remove('hidden');
+            tickerBox.innerHTML = '';
+            
+            // Core calculation formulas compiling squad ratings
+            let aggregateRating = 0;
+            positions.forEach(pos => {
+                aggregateRating += currentRoster[pos.id].rating;
+            });
+            const teamPowerScore = aggregateRating / 19;
+            
+            // Win Probability Algorithm Scaler
+            const baseWinPercentage = (teamPowerScore - 75) / 25; // Adjusted floor index scaling mapping
+            const cleanWinProb = Math.max(0.4, Math.min(0.97, baseWinPercentage));
+
+            let wins = 0;
+            let losses = 0;
+            let fixtureCount = 1;
+
+            // Generate Match Engine Ticker Output
+            function simulatedGameLoop() {
+                if (fixtureCount <= 26) {
+                    const isFinals = fixtureCount > 23;
+                    const stageLabel = isFinals ? `Finals Wk ${fixtureCount - 23}` : `Round ${fixtureCount}`;
+                    
+                    const diceRoll = Math.random();
+                    let matchResult = "LOSS";
+                    
+                    // Modulate parameters under pressure rules for high stakes finals
+                    const activeProb = isFinals ? (cleanWinProb - 0.03) : cleanWinProb;
+
+                    if (diceRoll <= activeProb) {
+                        matchResult = "WIN";
+                        wins++;
+                    } else {
+                        losses++;
+                    }
+
+                    const item = document.createElement('div');
+                    if (matchResult === "WIN") {
+                        item.className = "text-emerald-400";
+                        item.innerText = `>> ${stageLabel}: SQUAD SECURES THE WIN [Record: ${wins}-${losses}]`;
+                    } else {
+                        item.className = "text-rose-500";
+                        item.innerText = `>> ${stageLabel}: MATCH CONCEDED ON FIELD [Record: ${wins}-${losses}]`;
+                    }
+                    tickerBox.appendChild(item);
+                    tickerBox.scrollTop = tickerBox.scrollHeight;
+
+                    // If a loss occurs during finals, execution snaps to immediate elimination output
+                    if (isFinals && matchResult === "LOSS") {
+                        const finalReport = document.createElement('div');
+                        finalReport.className = "pt-4 border-t border-neutral-800 font-bold text-amber-400 text-sm tracking-wide";
+                        finalReport.innerText = `CRITICAL ELIMINATION: Season concluded prematurely in high stakes finals series. Final Record: ${wins}-${losses}.`;
+                        tickerBox.appendChild(finalReport);
+                        return;
+                    }
+
+                    fixtureCount++;
+                    setTimeout(simulatedGameLoop, 100);
+                } else {
+                    // Successful Completion of entire fixture loop
+                    const finalReport = document.createElement('div');
+                    finalReport.className = "pt-4 border-t border-neutral-800 font-bold text-yellow-400 text-sm tracking-wide uppercase";
+                    if (wins === 26) {
+                        finalReport.innerText = `🏆 IMMORTALITY ACHIEVED: Final Record 26-0! Your tactical roster engineered a flawless historic undefeated run.`;
+                    } else {
+                        finalReport.innerText = `🏁 SEASON CONCLUDED: Final Record ${wins}-${losses}. A competitive championship run, but short of flawless perfection.`;
+                    }
+                    tickerBox.appendChild(finalReport);
+                }
+            }
+
+            simulatedGameLoop();
+        });
+
+        // Boot Init execution
+        renderRoster();
+    </script>
+</body>
+</html>
