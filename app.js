@@ -16,66 +16,103 @@ const TEAM_SLUGS = [
     "richmond", "stkilda", "sydney", "westcoast", "westernb"
 ];
 
-// Game State Tracker
-let playersDB = [];
+// Game State Trackers
 let coachesDB = [];
-let currentSlotIndex = 0;
-let userSquad = []; // Array of selected objects
+let loadedDecadeData = null;
+let currentlyLoadedDecade = ""; // Cache to avoid re-fetching if we spin the same decade twice
 
-let currentSpin = { team: "", year: null };
-
-// 1. Fetch JSON files directly from your GitHub directory relative path
+// 1. Load coaches upfront
 async function initGame() {
     try {
-        const playerResponse = await fetch('./players.json');
-        playersDB = await playerResponse.json();
-
-        const coachResponse = await fetch('./coaches.json');
+        const coachResponse = await fetch('coaches.json');
         coachesDB = await coachResponse.json();
-
-        console.log("Databases loaded successfully!");
+        console.log("Coaches database loaded!");
         startNextTurn();
     } catch (error) {
-        console.error("Error initializing game data:", error);
+        console.error("Error loading coach data:", error);
     }
 }
 
-// 2. Generate a random Team and Year/Era
-function generateSpin() {
-    const randomTeam = TEAM_SLUGS[Math.floor(Math.random() * TEAM_SLUGS.length)];
-    const randomYear = Math.floor(Math.random() * (2026 - 1965 + 1)) + 1965;
-    
-    currentSpin = { team: randomTeam, year: randomYear };
-    displaySpinOptions();
-}
-
-// 3. Filter your database to present selection choices to the user
-function displaySpinOptions() {
-    const isCoachSlot = POSITION_NAMES[currentSlotIndex] === "Coach";
+// 2. Fetch the decade dataset on demand and filter
+async function displaySpinOptions() {
+    const currentPosition = POSITION_NAMES[currentSlotIndex];
+    const isCoachSlot = currentPosition === "Coach";
     let availableChoices = [];
 
     if (isCoachSlot) {
-        // Filter coach database matching the spun team
-        // (Coaches often span multiple years, so we find if the spun year falls in their 'Seas' range)
         availableChoices = coachesDB.filter(c => {
             if (c.Team_Slug !== currentSpin.team) return false;
-            const years = c.Seas.split('-'); // e.g. "1997-1999" or "2020-2024"
+            const years = c.Seas.split('-');
             const start = parseInt(years[0]);
             const end = years[1] ? parseInt(years[1]) : 2026;
             return currentSpin.year >= start && currentSpin.year <= end;
         });
-        
-        // Fallback: If no exact coach matching that exact year, grab any coach from that team
         if (availableChoices.length === 0) {
             availableChoices = coachesDB.filter(c => c.Team_Slug === currentSpin.team);
         }
+        
+        renderOptionsUI(availableChoices, currentPosition);
     } else {
-        // Filter player database matching exact year and team
-        availableChoices = playersDB.filter(p => 
-            p.Year === currentSpin.year && 
-            p.Team.toLowerCase().replace(/\s+/g, '') === currentSpin.team
-        );
+        // Calculate the decade string from the spun year (e.g., 1995 -> "1990s")
+        const targetDecade = `${Math.floor(currentSpin.year / 10) * 10}s`;
+        
+        try {
+            // Performance Optimization: Only fetch if we aren't already working within this decade
+            if (currentlyLoadedDecade !== targetDecade) {
+                const response = await fetch(`decades/${targetDecade}.json`);
+                loadedDecadeData = await response.json();
+                currentlyLoadedDecade = targetDecade;
+                console.log(`Loaded new decade file: ${targetDecade}.json`);
+            }
+            
+            // Filter down out of the entire decade to just the exact Year and Team spun
+            availableChoices = loadedDecadeData.filter(p => 
+                p.Year === currentSpin.year && 
+                p.Team.toLowerCase().replace(/\s+/g, '') === currentSpin.team
+            );
+            
+            renderOptionsUI(availableChoices, currentPosition);
+        } catch (err) {
+            console.error(`Failed to load data for decade ${targetDecade}:`, err);
+            renderOptionsUI([], currentPosition); // Fallback to skip button
+        }
     }
+}
+
+// 3. Keep your UI renderer helper
+function renderOptionsUI(availableChoices, currentPosition) {
+    const displayEl = document.getElementById('spinDisplay');
+    const teamClean = currentSpin.team.replace('b', ' Bears').replace('l', ' Lions').toUpperCase();
+    displayEl.innerHTML = `Drafting Position: <span>${currentPosition}</span><br>Spun Era: <span>${teamClean} (${currentSpin.year})</span>`;
+    
+    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+    const activeSlot = document.getElementById(`slot-${currentPosition}`);
+    if(activeSlot) activeSlot.classList.add('active');
+
+    const container = document.getElementById('optionsContainer');
+    container.innerHTML = '';
+    
+    if(availableChoices.length === 0) {
+        const skipBtn = document.createElement('button');
+        skipBtn.className = 'option-btn';
+        skipBtn.innerText = "No data found (Skip Slot)";
+        skipBtn.onclick = () => handleUiSelection(currentPosition === "Coach" ? { Coach: "Generic Coach", Total_Pct: 50.0, GF: 0 } : { Player: "Squad Filler", DI: 10, MK: 2, GL: 0 }, currentPosition);
+        container.appendChild(skipBtn);
+        return;
+    }
+
+    availableChoices.slice(0, 15).forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        if(currentPosition === "Coach") {
+            btn.innerHTML = `<strong>${item.Coach}</strong><br>Record Pct: ${item.Total_Pct}% | GF: ${item.GF}`;
+        } else {
+            btn.innerHTML = `<strong>${item.Player}</strong><br>Disposals: ${item.DI || 0} | Goals: ${item.GL || 0}`;
+        }
+        btn.onclick = () => handleUiSelection(item, currentPosition);
+        container.appendChild(btn);
+    });
+}
 
     // INTERFACE TRIGGER: Render these options dynamically into your UI
     console.log(`Slot: ${POSITION_NAMES[currentSlotIndex]}. Spun: ${currentSpin.team.toUpperCase()} (${currentSpin.year})`);
