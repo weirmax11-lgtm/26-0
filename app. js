@@ -3,54 +3,50 @@
 // ============================================================================
 
 // 1. GAME CONFIGURATION
-const TOTAL_SLOTS = 19; // 18 Positions + 1 Coach Slot
+const TOTAL_SLOTS = 19; 
 const POSITION_NAMES = [
-    "F1", "F2", "F3",       // Full Forwards (Pockets & Full Forward)
-    "HF1", "HF2", "HF3",   // Half Forwards
-    "C1", "C2", "C3",       // Center Line (Wings & Center)
-    "Ruck", "Ruck-Rover", "Rover", // Followers
-    "HB1", "HB2", "HB3",   // Half Backs
-    "B1", "B2", "B3",       // Full Backs (Pockets & Full Back)
-    "Coach"                 // Senior Coach
+    "F1", "F2", "F3",       
+    "HF1", "HF2", "HF3",   
+    "C1", "C2", "C3",       
+    "Ruck", "Ruck-Rover", "Rover", 
+    "HB1", "HB2", "HB3",   
+    "B1", "B2", "B3",       
+    "Coach"                 
 ];
 
-// Slugs mapping your scraped data teams to standard labels
+// UPDATED: Standardized exactly to match your scraped database name strings
 const TEAM_SLUGS = [
     "adelaide", "brisbaneb", "brisbanel", "carlton", "collingwood", 
     "essendon", "fitzroy", "fremantle", "geelong", "goldcoast", 
-    "gws", "hawthorn", "melbourne", "northm", "portadel", 
-    "richmond", "stkilda", "sydney", "westcoast", "westernb"
+    "gws", "hawthorn", "melbourne", "kangaroos", "padelaide", 
+    "richmond", "stkilda", "swans", "westcoast", "bulldogs"
 ];
 
 // 2. STATE CONTROLLERS
 let coachesDB = [];
 let loadedDecadeData = null;
-let currentlyLoadedDecade = ""; // Memory cache to prevent duplicate file fetching
+let currentlyLoadedDecade = ""; 
 let currentSlotIndex = 0;
-let userSquad = []; // Array storing player choices
+let userSquad = []; 
 
 let currentSpin = { team: "", year: null };
 
 // 3. INITIALIZE GAME DATABASES
 async function initGame() {
     try {
-        // Fetch the master coach JSON file upfront (small size footprint)
         const coachResponse = await fetch('coaches.json');
         coachesDB = await coachResponse.json();
         console.log("Coaches database successfully loaded!");
-        
-        // Begin the first draft round
         startNextTurn();
     } catch (error) {
         console.error("Critical Engine Error: Failed to bootstrap base system files:", error);
-        document.getElementById('spinDisplay').innerText = "System Error: Could not load data files. Verify paths.";
+        document.getElementById('spinDisplay').innerText = "System Error: Could not load data files.";
     }
 }
 
 // 4. RANDOM GENERATION ENGINE
 function generateSpin() {
     const randomTeam = TEAM_SLUGS[Math.floor(Math.random() * TEAM_SLUGS.length)];
-    // Constrain random parameters between 1965 and 2026
     const randomYear = Math.floor(Math.random() * (2026 - 1965 + 1)) + 1965;
     
     currentSpin = { team: randomTeam, year: randomYear };
@@ -66,31 +62,26 @@ async function displaySpinOptions() {
     // --- COACH SLOT EVALUATION ---
     if (isCoachSlot) {
         availableChoices = coachesDB.filter(c => {
+            // Check that the coach's slug matches our active team slug
             if (c.Team_Slug !== currentSpin.team) return false;
-            // Parse operational bounds (e.g., "1997-1999" or "2020-2024")
+            
             const years = c.Seas.split('-');
             const start = parseInt(years[0]);
             const end = years[1] ? parseInt(years[1]) : 2026;
             return currentSpin.year >= start && currentSpin.year <= end;
         });
         
-        // Fallback catch: If no operational window exists for that specific year, fetch historical list
         if (availableChoices.length === 0) {
             availableChoices = coachesDB.filter(c => c.Team_Slug === currentSpin.team);
         }
         
-        // Forward array context to the UI generator
-        if (typeof renderOptionsUI === "function") {
-            renderOptionsUI(availableChoices, currentPosition);
-        }
+        renderOptionsUI(availableChoices, currentPosition);
 
     // --- PLAYER SLOT EVALUATION ---
     } else {
-        // Resolve target folder directory path based on decade bounds (e.g., 1995 -> "1990s")
         const targetDecade = `${Math.floor(currentSpin.year / 10) * 10}s`;
         
         try {
-            // Check memory cache: Only download if transitioning into a new era boundary
             if (currentlyLoadedDecade !== targetDecade) {
                 const response = await fetch(`decades/${targetDecade}.json`);
                 loadedDecadeData = await response.json();
@@ -98,20 +89,16 @@ async function displaySpinOptions() {
                 console.log(`Cached file memory reference switched to: ${targetDecade}.json`);
             }
             
-            // Extract records matching both the precise Year and Team code
+            // Normalize names matching exactly with lowercased values from your raw JSON data
             availableChoices = loadedDecadeData.filter(p => 
                 p.Year === currentSpin.year && 
                 p.Team.toLowerCase().replace(/\s+/g, '') === currentSpin.team
             );
             
-            if (typeof renderOptionsUI === "function") {
-                renderOptionsUI(availableChoices, currentPosition);
-            }
+            renderOptionsUI(availableChoices, currentPosition);
         } catch (err) {
-            console.error(`Data Pipeline Interruption on decade: ${targetDecade}:`, err);
-            if (typeof renderOptionsUI === "function") {
-                renderOptionsUI([], currentPosition); // Direct fallback execution
-            }
+            console.error(`Data Pipeline Interruption on decade ${targetDecade}:`, err);
+            renderOptionsUI([], currentPosition); 
         }
     }
 }
@@ -143,29 +130,24 @@ function calculateFinalScore() {
 
     userSquad.forEach(slot => {
         if (slot.isCoach) {
-            // Coach algorithm balance weights
             const winPct = slot.selection.Total_Pct || 50.0;
             const gfBonus = (slot.selection.GF || 0) * 5; 
             rawSquadScore += (winPct * 0.5) + gfBonus;
         } else {
-            // Individual player structural weight metrics
             const p = slot.selection;
-            
             const playerPower = 
-                ((p.DI || 0) * 0.3) +  // Disposals weight
-                ((p.MK || 0) * 0.5) +  // Marks weight
-                ((p.GL || 0) * 1.2) +  // Goals weight
-                ((p.BH || 0) * 0.2) +  // Behinds margin weight
-                ((p.TK || 0) * 0.8) +  // Defensive Tackles weight
-                ((p.HO || 0) * 0.15) + // Hit Outs support weight
-                ((p.BR || 0) * 2.5);   // Elite status: Brownlow Votes multiplier
+                ((p.DI || 0) * 0.3) +  
+                ((p.MK || 0) * 0.5) +  
+                ((p.GL || 0) * 1.2) +  
+                ((p.BH || 0) * 0.2) +  
+                ((p.TK || 0) * 0.8) +  
+                ((p.HO || 0) * 0.15) + 
+                ((p.BR || 0) * 2.5);   
                 
             rawSquadScore += playerPower;
         }
     });
 
-    // Normalize scale structure against a 26 game limits boundary
-    // Divisor adjustment index set to 280 for accurate simulation spreads
     let calculatedWins = Math.min(26, Math.max(0, Math.floor(rawSquadScore / 280)));
     let calculatedLosses = 26 - calculatedWins;
 
