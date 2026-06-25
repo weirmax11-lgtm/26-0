@@ -3,557 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>26-0 // All-Time VFL/AFL Tactical Draft</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>26-0: Ultimate AFL Squad Builder</title>
     <style>
-        /* Custom scrollbar styling for the match ticker */
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #0a0a0a; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #262626; border-radius: 2px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #404040; }
+        :root {
+            --turf-green: #1b4d3e;
+            --grass-light: #225c4a;
+            --footy-yellow: #ffde17;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-light: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #111, #222);
+            color: var(--text-light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            color: var(--footy-yellow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        header p {
+            margin: 5px 0 0 0;
+            opacity: 0.8;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Control Panel / Spinner Section */
+        .control-panel {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .spin-display {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .spin-display span {
+            color: var(--footy-yellow);
+            text-transform: uppercase;
+        }
+
+        /* Selection Options Grid */
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background: var(--footy-yellow);
+            color: #000;
+            transform: translateY(-2px);
+        }
+
+        /* The Footy Field Grid */
+        .field {
+            background: radial-gradient(circle, var(--grass-light), var(--turf-green));
+            border: 4px solid white;
+            border-radius: 50% / 15%; /* Creates the classic oval shape vibe */
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .field-line {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Player Card Slots */
+        .slot {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            width: 140px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 5px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .slot.active {
+            border-color: var(--footy-yellow);
+            box-shadow: 0 0 10px var(--footy-yellow);
+        }
+
+        .slot.filled {
+            border-style: solid;
+            border-color: #fff;
+            background: #fff;
+            color: #000;
+        }
+
+        .slot-pos {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            opacity: 0.6;
+            margin-bottom: 4px;
+        }
+
+        .slot.filled .slot-pos {
+            opacity: 0.8;
+            color: #555;
+        }
+
+        .slot-name {
+            font-weight: bold;
+        }
+
+        /* Coach Banner */
+        .coach-section {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        /* Results Modal Overlay */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: #222;
+            border: 3px solid var(--footy-yellow);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h2 {
+            font-size: 3rem;
+            margin: 10px 0;
+            color: var(--footy-yellow);
+        }
+
+        .restart-btn {
+            background: var(--footy-yellow);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+
+        .restart-btn:hover {
+            background: #fff;
+        }
     </style>
 </head>
-<body class="bg-zinc-950 text-zinc-50 min-h-screen font-sans antialiased selection:bg-amber-500 selection:text-zinc-950">
+<body>
 
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <header class="flex flex-col md:flex-row justify-between items-center border-b border-zinc-800 pb-4 mb-6 gap-4">
-            <div class="text-center md:text-left">
-                <h1 class="text-3xl font-black tracking-tighter uppercase text-amber-400">26 — 0</h1>
-                <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-0.5">The Ultimate AFL Roster & Simulation Challenge</p>
+    <header>
+        <h1>26-0</h1>
+        <p>Build a Legendary VFL/AFL Roster. Can you go undefeated?</p>
+    </header>
+
+    <div class="game-container">
+        <div class="control-panel">
+            <div class="spin-display" id="spinDisplay">
+                Loading database files...
             </div>
-            <div class="flex items-center gap-6 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg text-sm">
-                <div>
-                    <span class="text-zinc-500 font-semibold uppercase tracking-wider text-[11px] block">Squad Progress</span>
-                    <span class="font-mono text-lg font-bold"><span id="progress-count" class="text-amber-400">0</span>/19</span>
+            <div class="options-container" id="optionsContainer">
                 </div>
-                <div class="h-8 w-px bg-zinc-800"></div>
-                <div>
-                    <span class="text-zinc-500 font-semibold uppercase tracking-wider text-[11px] block">Team Rating</span>
-                    <span id="live-team-rating" class="font-mono text-lg font-bold text-zinc-300">--</span>
-                </div>
-            </div>
-        </header>
+        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            <div class="lg:col-span-4 space-y-6">
-                
-                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-xl">
-                    <h2 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-4 flex items-center justify-between">
-                        <span>Draft Control Room</span>
-                        <span id="draft-phase-indicator" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded">Idle</span>
-                    </h2>
-                    
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="bg-zinc-950 border border-zinc-800 p-3 rounded-lg text-center">
-                            <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">1. Club Wheel</span>
-                            <div id="display-club" class="text-sm font-black uppercase text-zinc-300 min-h-[40px] flex items-center justify-center text-center px-1">
-                                [Ready]
-                            </div>
-                            <button id="btn-reroll-club" disabled class="mt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 px-2 py-1 rounded disabled:opacity-30 disabled:pointer-events-none transition-all w-full">
-                                Re-spin Club
-                            </button>
-                        </div>
-                        <div class="bg-zinc-950 border border-zinc-800 p-3 rounded-lg text-center">
-                            <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">2. Era Wheel</span>
-                            <div id="display-era" class="text-sm font-black uppercase text-zinc-300 min-h-[40px] flex items-center justify-center text-center px-1">
-                                [Ready]
-                            </div>
-                            <button id="btn-reroll-era" disabled class="mt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400 border border-zinc-800 hover:border-zinc-700 bg-zinc-900 px-2 py-1 rounded disabled:opacity-30 disabled:pointer-events-none transition-all w-full">
-                                Re-spin Era
-                            </button>
-                        </div>
-                    </div>
-
-                    <button id="btn-master-spin" class="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black uppercase tracking-wider py-3 rounded-lg text-xs transition-all duration-150 cursor-pointer shadow-lg shadow-amber-500/5">
-                        Spin Draft Wheels
-                    </button>
-
-                    <div id="selection-module" class="hidden mt-5 pt-5 border-t border-zinc-800 space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5">Target Field Position</label>
-                            <select id="select-position" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs focus:outline-none focus:border-amber-500 text-zinc-200 font-medium"></select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1.5">Select Available Target Player & Career Stats</label>
-                            <select id="select-target" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs focus:outline-none focus:border-amber-500 text-zinc-200 font-mono"></select>
-                        </div>
-                        <button id="btn-lock-player" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-wider py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer">
-                            Lock Selection to Field
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-xl">
-                    <h2 class="text-xs font-black uppercase tracking-wider text-zinc-400 mb-3">Season Simulation Engine</h2>
-                    <button id="btn-start-simulation" disabled class="w-full bg-zinc-800 text-zinc-500 disabled:opacity-40 disabled:cursor-not-allowed font-black uppercase tracking-wider py-3.5 rounded-lg text-xs transition-all duration-150">
-                        Simulate 26-Game Season
-                    </button>
-                    
-                    <div id="simulation-ticker" class="hidden mt-4 bg-zinc-950 border border-zinc-800 rounded-lg p-3 h-56 overflow-y-auto font-mono text-[11px] space-y-1 custom-scroll"></div>
-                </div>
+        <div class="field">
+            <div class="field-line">
+                <div class="slot" id="slot-F1"><div class="slot-pos">Fwd Pocket</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-F2"><div class="slot-pos">Full Forward</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-F3"><div class="slot-pos">Fwd Pocket</div><div class="slot-name">Empty</div></div>
             </div>
 
-            <div class="lg:col-span-8">
-                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl relative overflow-hidden">
-                    
-                    <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-3">
-                        <h2 class="text-xs font-black uppercase tracking-wider text-zinc-400">Interactive Tactical Grid Map</h2>
-                        <div id="coach-anchor-point" class="w-56">
-                            </div>
-                    </div>
-
-                    <div class="relative w-full aspect-[3/4] md:aspect-[4/3] bg-zinc-950 border border-zinc-800/80 rounded-full flex flex-col justify-between p-4 md:p-8 shadow-inner">
-                        
-                        <div class="absolute inset-0 border border-dashed border-zinc-800/40 rounded-full pointer-events-none m-4 md:m-8"></div>
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-36 md:h-36 border border-zinc-800/40 pointer-events-none"></div>
-                        
-                        <div class="z-10 flex justify-center gap-2 md:gap-4 w-full">
-                            <div id="node-F2" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-F1" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-F3" class="pos-node w-1/4 max-w-[120px]"></div>
-                        </div>
-
-                        <div class="z-10 flex justify-center gap-2 md:gap-4 w-full -mt-2 md:mt-0">
-                            <div id="node-HF2" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-HF1" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-HF3" class="pos-node w-1/4 max-w-[120px]"></div>
-                        </div>
-
-                        <div class="z-10 flex flex-col items-center gap-3 w-full my-1">
-                            <div class="flex justify-between w-full px-2 md:px-8">
-                                <div id="node-M2" class="pos-node w-1/4 max-w-[110px]"></div>
-                                <div id="node-M3" class="pos-node w-1/4 max-w-[110px]"></div>
-                            </div>
-                            <div class="flex justify-center gap-1.5 md:gap-3 w-full -mt-8">
-                                <div id="node-M4" class="pos-node w-[75px] md:w-[90px]"></div>
-                                <div id="node-M1" class="pos-node w-[75px] md:w-[90px]"></div>
-                                <div id="node-M5" class="pos-node w-[75px] md:w-[90px]"></div>
-                                <div id="node-M6" class="pos-node w-[75px] md:w-[90px]"></div>
-                            </div>
-                        </div>
-
-                        <div class="z-10 flex justify-center gap-2 md:gap-4 w-full -mb-2 md:mt-0">
-                            <div id="node-HB2" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-HB1" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-HB3" class="pos-node w-1/4 max-w-[120px]"></div>
-                        </div>
-
-                        <div class="z-10 flex justify-center gap-2 md:gap-4 w-full">
-                            <div id="node-B2" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-B1" class="pos-node w-1/4 max-w-[120px]"></div>
-                            <div id="node-B3" class="pos-node w-1/4 max-w-[120px]"></div>
-                        </div>
-
-                    </div>
-                </div>
+            <div class="field-line">
+                <div class="slot" id="slot-HF1"><div class="slot-pos">Half Forward</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-HF2"><div class="slot-pos">Center Forward</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-HF3"><div class="slot-pos">Half Forward</div><div class="slot-name">Empty</div></div>
             </div>
 
+            <div class="field-line">
+                <div class="slot" id="slot-C1"><div class="slot-pos">Wing</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-C2"><div class="slot-pos">Center</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-C3"><div class="slot-pos">Wing</div><div class="slot-name">Empty</div></div>
+            </div>
+
+            <div class="field-line">
+                <div class="slot" id="slot-Ruck"><div class="slot-pos">Ruck</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-Ruck-Rover"><div class="slot-pos">Ruck-Rover</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-Rover"><div class="slot-pos">Rover</div><div class="slot-name">Empty</div></div>
+            </div>
+
+            <div class="field-line">
+                <div class="slot" id="slot-HB1"><div class="slot-pos">Half Back</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-HB2"><div class="slot-pos">Center Back</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-HB3"><div class="slot-pos">Half Back</div><div class="slot-name">Empty</div></div>
+            </div>
+
+            <div class="field-line">
+                <div class="slot" id="slot-B1"><div class="slot-pos">Back Pocket</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-B2"><div class="slot-pos">Full Back</div><div class="slot-name">Empty</div></div>
+                <div class="slot" id="slot-B3"><div class="slot-pos">Back Pocket</div><div class="slot-name">Empty</div></div>
+            </div>
+        </div>
+
+        <div class="coach-section">
+            <div class="slot" id="slot-Coach" style="width: 200px;">
+                <div class="slot-pos">Senior Coach</div>
+                <div class="slot-name">Empty</div>
+            </div>
         </div>
     </div>
 
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <h3>Season Simulation Complete!</h3>
+            <p>Your team finished with a record of:</p>
+            <h2 id="finalScoreDisplay">0 - 0</h2>
+            <p id="finalFeedbackText"></p>
+            <button class="restart-btn" onclick="window.location.reload()">Draft New Team</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
     <script>
-        // Production Grade Normalized Historical Database
-        const database = {
-            clubs: [
-                { id: "BL", name: "Brisbane Lions" },
-                { id: "HAW", name: "Hawthorn" },
-                { id: "GEE", name: "Geelong" },
-                { id: "RIC", name: "Richmond" },
-                { id: "SYD", name: "Sydney Swans" },
-                { id: "COL", name: "Collingwood" },
-                { id: "ESS", name: "Essendon" },
-                { id: "WC", name: "West Coast Eagles" }
-            ],
-            eras: ["1980s", "1990s", "2000s", "2010s", "2020s"],
-            players: [
-                // Brisbane Lions - 2000s Legend Era
-                { name: "Jonathan Brown", club: "BL", era: "2000s", line: "Forward", rating: 92, stats: "G: 2.5, M: 7.1, D: 14.8", trait: "Power Contest Maker" },
-                { name: "Michael Voss", club: "BL", era: "2000s", line: "Midfield", rating: 95, stats: "D: 23.4, T: 4.1, CL: 5.2", trait: "Elite Leader Multiplier" },
-                { name: "Simon Black", club: "BL", era: "2000s", line: "Midfield", rating: 93, stats: "D: 25.1, T: 4.8, CL: 6.1", trait: "Inside Clearance King" },
-                { name: "Jason Akermanis", club: "BL", era: "2000s", line: "Midfield", rating: 91, stats: "D: 20.2, G: 1.6, I50: 4.1", trait: "Freak Boundary Finisher" },
-                { name: "Justin Leppitsch", club: "BL", era: "2000s", line: "Defender", rating: 90, stats: "M: 5.8, D: 15.2, R50: 3.4", trait: "Intercept Structural Anchor" },
-                { name: "Chris Johnson", club: "BL", era: "2000s", line: "Defender", rating: 89, stats: "D: 17.1, M: 4.5, R50: 4.2", trait: "Explosive Run Counter" },
+        // DOM Extension Hooks to sync the previously written app.js code with this HTML layout:
+        
+        // Overwrite/extend the app.js functions to physically render UI updates
+        const originalDisplaySpinOptions = displaySpinOptions;
+        displaySpinOptions = function() {
+            // Update the display text panel
+            const currentPosition = POSITION_NAMES[currentSlotIndex];
+            const displayEl = document.getElementById('spinDisplay');
+            
+            // Format team label to read beautifully
+            const teamClean = currentSpin.team.replace('b', ' Bears').replace('l', ' Lions').toUpperCase();
+            displayEl.innerHTML = `Drafting Position: <span>${currentPosition}</span><br>Spun Era: <span>${teamClean} (${currentSpin.year})</span>`;
+            
+            // Highlight active slot card in layout
+            document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+            const activeSlot = document.getElementById(`slot-${currentPosition}`);
+            if(activeSlot) activeSlot.classList.add('active');
+
+            // Fire the core calculations filter from app.js 
+            // We intercept the filtered items array here to generate selection elements:
+            const isCoachSlot = currentPosition === "Coach";
+            let availableChoices = [];
+            if (isCoachSlot) {
+                availableChoices = coachesDB.filter(c => {
+                    if (c.Team_Slug !== currentSpin.team) return false;
+                    const years = c.Seas.split('-');
+                    return currentSpin.year >= parseInt(years[0]) && currentSpin.year <= (years[1] ? parseInt(years[1]) : 2026);
+                });
+                if (availableChoices.length === 0) availableChoices = coachesDB.filter(c => c.Team_Slug === currentSpin.team);
+            } else {
+                availableChoices = playersDB.filter(p => p.Year === currentSpin.year && p.Team.toLowerCase().replace(/\s+/g, '') === currentSpin.team);
+            }
+
+            // Render choice option elements inside DOM container
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+            
+            if(availableChoices.length === 0) {
+                // Fail-safe if zero records returned from specific year combo, pass a skip auto-button
+                const skipBtn = document.createElement('button');
+                skipBtn.className = 'option-btn';
+                skipBtn.innerText = "No players found this year (Skip Slot)";
+                skipBtn.onclick = () => {
+                    const emptyMock = isCoachSlot ? { Coach: "Generic Coach", Total_Pct: 50.0, GF: 0 } : { Player: "Squad Filler", DI: 10, MK: 2, GL: 0 };
+                    handleUiSelection(emptyMock, currentPosition);
+                };
+                container.appendChild(skipBtn);
+            }
+
+            availableChoices.slice(0, 15).forEach(item => { // limit to top 15 to keep screen clean
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                if(isCoachSlot) {
+                    btn.innerHTML = `<strong>${item.Coach}</strong><br>Record Pct: ${item.Total_Pct}% | GF: ${item.GF}`;
+                } else {
+                    btn.innerHTML = `<strong>${item.Player}</strong><br>Disposals: ${item.DI || 0} | Goals: ${item.GL || 0}`;
+                }
                 
-                // Hawthorn - 1980s Dominant Blueprint
-                { name: "Jason Dunstall", club: "HAW", era: "1980s", line: "Forward", rating: 97, stats: "G: 4.7, M: 6.8, D: 12.1", trait: "Pure Goal Machine Century" },
-                { name: "Dermott Brereton", club: "HAW", era: "1980s", line: "Forward", rating: 92, stats: "G: 2.1, M: 5.9, D: 13.5", trait: "Aggressive Pack Decoy" },
-                { name: "Gary Ayres", club: "HAW", era: "1980s", line: "Defender", rating: 91, stats: "D: 21.4, M: 4.9, T: 3.2", trait: "Clutch Big Match Back" },
-                { name: "Chris Langford", club: "HAW", era: "1980s", line: "Defender", rating: 90, stats: "M: 5.1, D: 14.0, Sp: 7.2", trait: "Full Back Lockdown Matrix" },
-                { name: "Michael Tuck", club: "HAW", era: "1980s", line: "Midfield", rating: 92, stats: "D: 22.8, T: 4.5, G: 0.8", trait: "Infinite Engine Durability" },
-                { name: "Robert DiPierdomenico", club: "HAW", era: "1980s", line: "Midfield", rating: 89, stats: "D: 20.5, T: 3.1, M: 4.8", trait: "Physical Wing Enforcer" },
-                
-                // Geelong - 2000s / 2010s Dynastic Framework
-                { name: "Gary Ablett Jr", club: "GEE", era: "2000s", line: "Midfield", rating: 98, stats: "D: 31.2, G: 1.4, CL: 5.8", trait: "Cheat-Code Ball Magnet" },
-                { name: "Joel Selwood", club: "GEE", era: "2010s", line: "Midfield", rating: 94, stats: "D: 25.3, T: 5.5, CL: 6.3", trait: "Hard-ball Intensity Multiplier" },
-                { name: "Tom Hawkins", club: "GEE", era: "2010s", line: "Forward", rating: 91, stats: "G: 2.4, M: 5.6, RkH: 2.1", trait: "Power Forward Playmaker" },
-                { name: "Corey Enright", club: "GEE", era: "2000s", line: "Defender", rating: 92, stats: "D: 22.9, M: 6.2, R50: 4.5", trait: "Flawless Backline General" },
-                { name: "Harry Taylor", club: "GEE", era: "2010s", line: "Defender", rating: 90, stats: "M: 6.4, D: 16.1, Int: 3.2", trait: "Structural Intercept Asset" },
-                { name: "Matthew Scarlett", club: "GEE", era: "2000s", line: "Defender", rating: 95, stats: "D: 18.4, M: 5.5, Sp: 6.8", trait: "All-Time Lockdown Fullback" },
-
-                // Richmond - 2010s System Tiger Era
-                { name: "Dustin Martin", club: "RIC", era: "2010s", line: "Midfield", rating: 97, stats: "D: 25.8, G: 1.5, I50: 5.2", trait: "Clutch Match-Winner Engine" },
-                { name: "Alex Rance", club: "RIC", era: "2010s", line: "Defender", rating: 95, stats: "M: 6.1, IntM: 3.8, Sp: 7.5", trait: "Unpassable Intercept Wall" },
-                { name: "Jack Riewoldt", club: "RIC", era: "2010s", line: "Forward", rating: 90, stats: "G: 2.3, M: 5.4, GAs: 0.9", trait: "Mobile High-Point Target" },
-                { name: "Trent Cotchin", club: "RIC", era: "2010s", line: "Midfield", rating: 91, stats: "D: 24.2, T: 4.9, CL: 4.5", trait: "High Pressure Clearance Axis" },
-
-                // Sydney Swans - 2000s / 2010s Bloods Culture
-                { name: "Lance Franklin", club: "SYD", era: "2010s", line: "Forward", rating: 96, stats: "G: 3.2, M: 5.1, D: 15.6", trait: "Unstoppable Field Weapon" },
-                { name: "Adam Goodes", club: "SYD", era: "2000s", line: "Midfield", rating: 94, stats: "D: 21.4, M: 5.2, G: 1.1", trait: "Dual Brownlow Complete Athlete" },
-                { name: "Brett Kirk", club: "SYD", era: "2000s", line: "Midfield", rating: 88, stats: "D: 18.2, T: 6.8, CL: 4.1", trait: "Hard Lockdown Tagger" },
-                { name: "Leo Barry", club: "SYD", era: "2000s", line: "Defender", rating: 89, stats: "M: 4.8, Sp: 6.2, D: 13.9", trait: "Clutch Under-Sized Stopper" },
-
-                // Collingwood - 1990s / 2010s / 2020s
-                { name: "Nathan Buckley", club: "COL", era: "1990s", line: "Midfield", rating: 95, stats: "D: 27.8, M: 5.1, I50: 4.9", trait: "Precision Kicking Metric" },
-                { name: "Scott Pendlebury", club: "COL", era: "2010s", line: "Midfield", rating: 94, stats: "D: 26.2, T: 4.8, CL: 4.6", trait: "Spatial Awareness Multiplier" },
-                { name: "Dane Swan", club: "COL", era: "2010s", line: "Midfield", rating: 93, stats: "D: 29.8, M: 5.8, G: 0.9", trait: "High Volumetric Accumulator" },
-                { name: "Darcy Moore", club: "COL", era: "2020s", line: "Defender", rating: 91, stats: "M: 5.9, Int: 3.4, Sp: 6.1", trait: "Acrobatic Intercept Center" },
-
-                // Essendon - 1995-2005 Juggernaut Cycle
-                { name: "James Hird", club: "ESS", era: "2000s", line: "Forward", rating: 95, stats: "D: 22.1, M: 6.4, G: 1.2", trait: "High Output Football IQ" },
-                { name: "Matthew Lloyd", club: "ESS", era: "2000s", line: "Forward", rating: 94, stats: "G: 3.8, M: 5.9, D: 10.5", trait: "Perfect Set Shot Trajectory" },
-                { name: "Dustin Fletcher", club: "ESS", era: "2000s", line: "Defender", rating: 93, stats: "D: 16.5, Sp: 7.8, R50: 3.9", trait: "Long-Range Layout Reach" },
-
-                // West Coast - 1990s / 2000s / 2010s
-                { name: "Chris Judd", club: "WC", era: "2000s", line: "Midfield", rating: 96, stats: "D: 26.1, CL: 5.4, G: 1.1", trait: "Explosive Burst Exit Speed" },
-                { name: "Ben Cousins", club: "WC", era: "2000s", line: "Midfield", rating: 93, stats: "D: 25.6, M: 4.2, G: 0.8", trait: "Infinite Aerobic Engine Capacity" },
-                { name: "Glen Jakovich", club: "WC", era: "1990s", line: "Defender", rating: 94, stats: "M: 5.8, D: 18.2, Sp: 6.9", trait: "True Center Half Back Pivot" },
-                { name: "Dean Cox", club: "WC", era: "2000s", line: "Midfield", rating: 94, stats: "Hit: 26.4, D: 18.1, M: 5.2", trait: "Pioneering Prototype Ruck-Mid" }
-            ],
-            coaches: [
-                { name: "Leigh Matthews", club: "BL", era: "2000s", rating: 96, trait: "Uncompromising Psychological Edge" },
-                { name: "Allan Jeans", club: "HAW", era: "1980s", rating: 94, trait: "Systematic Hard Defensive Press" },
-                { name: "Chris Scott", club: "GEE", era: "2010s", rating: 91, trait: "High Margin Modern Home Record" },
-                { name: "Damien Hardwick", club: "RIC", era: "2010s", rating: 92, trait: "High Turnover Chaotic System" },
-                { name: "Kevin Sheedy", club: "ESS", era: "1990s", rating: 93, trait: "Unpredictable Positional Shifts" },
-                { name: "Mick Malthouse", club: "WC", era: "1990s", rating: 93, trait: "Uncompromising Boundary Press" }
-            ]
+                btn.onclick = () => handleUiSelection(item, currentPosition);
+                container.appendChild(btn);
+            });
         };
 
-        // Positions Schema mapping to structural Grid targets
-        const positions = [
-            { id: "F1", line: "Forward", label: "FF" },
-            { id: "F2", line: "Forward", label: "FP L" },
-            { id: "F3", line: "Forward", label: "FP R" },
-            { id: "HF1", line: "Forward", label: "CHF" },
-            { id: "HF2", line: "Forward", label: "HFF L" },
-            { id: "HF3", line: "Forward", label: "HFF R" },
-            { id: "M1", line: "Midfield", label: "C" },
-            { id: "M2", line: "Midfield", label: "W L" },
-            { id: "M3", line: "Midfield", label: "W R" },
-            { id: "M4", line: "Midfield", label: "RUCK" },
-            { id: "M5", line: "Midfield", label: "RR" },
-            { id: "M6", line: "Midfield", label: "RVR" },
-            { id: "HB1", line: "Defender", label: "CHB" },
-            { id: "HB2", line: "Defender", label: "HBF L" },
-            { id: "HB3", line: "Defender", label: "HBF R" },
-            { id: "B1", line: "Defender", label: "FB" },
-            { id: "B2", line: "Defender", label: "BP L" },
-            { id: "B3", line: "Defender", label: "BP R" },
-            { id: "COACH", line: "Coach", label: "COACH" }
-        ];
+        function handleUiSelection(item, position) {
+            // Fill card visual layout data
+            const card = document.getElementById(`slot-${position}`);
+            if(card) {
+                card.classList.remove('active');
+                card.classList.add('filled');
+                card.querySelector('.slot-name').innerText = item.Player || item.Coach;
+            }
+            
+            // Pass the choice data backwards into the main game execution script array
+            selectCandidate(item);
+        }
 
-        // Roster State Tracker
-        let roster = {};
-        let activeSpin = { club: null, era: null };
-        let spinsAllotted = { club: 1, era: 1 };
-
-        // DOM Element Definitions
-        const btnMasterSpin = document.getElementById('btn-master-spin');
-        const btnRerollClub = document.getElementById('btn-reroll-club');
-        const btnRerollEra = document.getElementById('btn-reroll-era');
-        const btnLockPlayer = document.getElementById('btn-lock-player');
-        const btnStartSimulation = document.getElementById('btn-start-simulation');
-        const displayClub = document.getElementById('display-club');
-        const displayEra = document.getElementById('display-era');
-        const selectionModule = document.getElementById('selection-module');
-        const selectPosition = document.getElementById('select-position');
-        const selectTarget = document.getElementById('select-target');
-        const progressCount = document.getElementById('progress-count');
-        const liveTeamRating = document.getElementById('live-team-rating');
-        const phaseIndicator = document.getElementById('draft-phase-indicator');
-        const simulationTicker = document.getElementById('simulation-ticker');
-
-        // Render Dynamic Field Map Nodes
-        function initFieldGrid() {
-            positions.forEach(pos => {
-                if(pos.id === "COACH") {
-                    document.getElementById('coach-anchor-point').innerHTML = createNodeHTML(pos);
+        // Overwrite final score screen to open modal box overlay
+        const originalCalculateFinalScore = calculateFinalScore;
+        calculateFinalScore = function() {
+            // Let the engine process backend points algorithms
+            let rawSquadScore = 0;
+            userSquad.forEach(slot => {
+                if (slot.isCoach) {
+                    rawSquadScore += ((slot.selection.Total_Pct || 50.0) * 0.5) + (slot.selection.GF * 5);
                 } else {
-                    const targetContainer = document.getElementById(`node-${pos.id}`);
-                    if(targetContainer) targetContainer.innerHTML = createNodeHTML(pos);
-                }
-            });
-        }
-
-        function createNodeHTML(pos) {
-            const hasData = roster[pos.id];
-            if (hasData) {
-                return `
-                    <div class="bg-emerald-950/40 border border-emerald-500/50 p-1.5 rounded text-center shadow-md transition-all duration-300">
-                        <div class="text-[9px] font-black uppercase text-emerald-400 tracking-tighter truncate">${hasData.name}</div>
-                        <div class="text-[8px] text-zinc-400 font-medium truncate">${hasData.club_code} (${hasData.rating})</div>
-                        <div class="text-[7px] text-emerald-600 font-bold uppercase tracking-widest mt-0.5">${pos.label}</div>
-                    </div>
-                `;
-            }
-            return `
-                <div class="bg-zinc-900/40 border border-zinc-800 p-1.5 rounded text-center opacity-60 hover:opacity-80 transition-all duration-200">
-                    <div class="text-[10px] font-mono font-bold text-zinc-600">--</div>
-                    <div class="text-[7px] text-zinc-500 font-bold uppercase tracking-wider mt-1">${pos.label}</div>
-                </div>
-            `;
-        }
-
-        // Calculation of Interactive Rating updates
-        function updateRosterMetrics() {
-            const keys = Object.keys(roster);
-            progressCount.innerText = keys.length;
-            
-            if (keys.length > 0) {
-                let total = 0;
-                keys.forEach(k => total += roster[k].rating);
-                liveTeamRating.innerText = Math.round(total / keys.length);
-            } else {
-                liveTeamRating.innerText = "--";
-            }
-
-            // Unlock Match Processing State
-            if (keys.length === 19) {
-                btnStartSimulation.disabled = false;
-                btnStartSimulation.className = "w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black uppercase tracking-wider py-4 rounded-lg text-xs transition-all duration-150 cursor-pointer shadow-lg shadow-amber-500/10 animate-pulse";
-                btnMasterSpin.disabled = true;
-                btnMasterSpin.classList.add('hidden');
-                phaseIndicator.innerText = "Complete";
-            }
-        }
-
-        // Master Draft Spin Algorithm Engine
-        function handleMasterSpin() {
-            spinsAllotted = { club: 1, era: 1 };
-            phaseIndicator.innerText = "Selecting";
-            
-            spinClubData();
-            spinEraData();
-            
-            btnMasterSpin.disabled = true;
-            btnMasterSpin.innerText = "Resolve Active Pick to Re-Spin";
-            btnMasterSpin.className = "w-full bg-zinc-800 text-zinc-500 font-bold uppercase py-3 rounded-lg text-xs cursor-not-allowed";
-            
-            renderSelectionControls();
-        }
-
-        function spinClubData() {
-            const roll = database.clubs[Math.floor(Math.random() * database.clubs.length)];
-            activeSpin.club = roll;
-            displayClub.innerText = roll.name;
-            btnRerollClub.disabled = spinsAllotted.club === 0;
-        }
-
-        function spinEraData() {
-            const roll = database.eras[Math.floor(Math.random() * database.eras.length)];
-            activeSpin.era = roll;
-            displayEra.innerText = roll;
-            btnRerollEra.disabled = spinsAllotted.era === 0;
-        }
-
-        // Dropdown Generation Rules
-        function renderSelectionControls() {
-            selectionModule.classList.remove('hidden');
-            selectPosition.innerHTML = '';
-            
-            let count = 0;
-            positions.forEach(pos => {
-                if(!roster[pos.id]) {
-                    const opt = document.createElement('option');
-                    opt.value = pos.id;
-                    opt.innerText = pos.label;
-                    selectPosition.appendChild(opt);
-                    count++;
+                    const p = slot.selection;
+                    rawSquadScore += ((p.DI || 0) * 0.3) + ((p.MK || 0) * 0.5) + ((p.GL || 0) * 1.2) + ((p.BH || 0) * 0.2) + ((p.TK || 0) * 0.8) + ((p.HO || 0) * 0.15) + ((p.BR || 0) * 2.5);
                 }
             });
 
-            if (count > 0) {
-                populateTargetPersonnelList();
-            }
-        }
+            let calculatedWins = Math.min(26, Math.max(0, Math.floor(rawSquadScore / 280)));
+            let calculatedLosses = 26 - calculatedWins;
 
-        function populateTargetPersonnelList() {
-            selectTarget.innerHTML = '';
-            const activeSlotId = selectPosition.value;
-            const posConfig = positions.find(p => p.id === activeSlotId);
-
-            if (posConfig.line === "Coach") {
-                // Coach Filter Execution
-                const pool = database.coaches.filter(c => c.club === activeSpin.club.id && c.era === activeSpin.era);
-                if (pool.length === 0) {
-                    appendFallbackOption(`No ${activeSpin.era} Coach found for ${activeSpin.club.id}`);
-                } else {
-                    pool.forEach(c => appendPersonnelOption(c, 'coach'));
-                }
-            } else {
-                // Player Filter Execution
-                const pool = database.players.filter(p => p.club === activeSpin.club.id && p.era === activeSpin.era && p.line === posConfig.line);
-                if (pool.length === 0) {
-                    appendFallbackOption(`No ${activeSpin.era} ${posConfig.line}s on list`);
-                } else {
-                    pool.forEach(p => appendPersonnelOption(p, 'player'));
-                }
-            }
-        }
-
-        function appendPersonnelOption(obj, type) {
-            const opt = document.createElement('option');
-            opt.value = JSON.stringify({ name: obj.name, rating: obj.rating, type: type });
-            // Monospaced aligned output grid configuration
-            const displayRating = String(obj.rating).padEnd(2, ' ');
-            const metrics = type === 'coach' ? `Trait: ${obj.trait}` : obj.stats;
-            opt.innerText = `[OVR: ${displayRating}] ${obj.name.padEnd(18, ' ')} -> ${metrics}`;
-            selectTarget.appendChild(opt);
-        }
-
-        function appendFallbackOption(msg) {
-            const opt = document.createElement('option');
-            opt.innerText = msg;
-            opt.disabled = true;
-            selectTarget.appendChild(opt);
-        }
-
-        // Lock Selection Action Function
-        function lockSelectionToField() {
-            if (!selectTarget.value || selectTarget.value.startsWith("No")) {
-                alert("Please select a valid player or resolve via re-spin options.");
-                return;
-            }
-
-            const slotId = selectPosition.value;
-            const parsed = JSON.parse(selectTarget.value);
-
-            roster[slotId] = {
-                name: parsed.name,
-                rating: parsed.rating,
-                club_code: activeSpin.club.id,
-                era: activeSpin.era
-            };
-
-            // Reset Interface Systems
-            selectionModule.classList.add('hidden');
-            displayClub.innerText = "[Ready]";
-            displayEra.innerText = "[Ready]";
-            btnRerollClub.disabled = true;
-            btnRerollEra.disabled = true;
+            // Trigger visual modal popups
+            document.getElementById('finalScoreDisplay').innerText = `${calculatedWins} - ${calculatedLosses}`;
             
-            btnMasterSpin.disabled = false;
-            btnMasterSpin.innerText = "Spin Draft Wheels";
-            btnMasterSpin.className = "w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black uppercase tracking-wider py-3 rounded-lg text-xs transition-all duration-150 cursor-pointer shadow-lg shadow-amber-500/5";
-            phaseIndicator.innerText = "Idle";
+            let feedback = "A solid effort, but missing the elite consistency required to reach the Premiership podium.";
+            if(calculatedWins === 26) feedback = "PERFECTION! Your drafted side went completely undefeated throughout the year and claimed the Flag!";
+            else if(calculatedWins >= 22) feedback = "Premiership Champions! An incredible star-studded squad that dominated the finals series!";
+            else if(calculatedWins >= 15) feedback = "Finals Bound! You made the top 8 comfortably but couldn't quite survive grand final day.";
 
-            initFieldGrid();
-            updateRosterMetrics();
-        }
-
-        // Dynamic 26-Game Football Simulation Algorithm
-        function executeSimulationEngine() {
-            simulationTicker.classList.remove('hidden');
-            simulationTicker.innerHTML = '';
-            
-            let totalRatingSum = 0;
-            positions.forEach(p => totalRatingSum += roster[p.id].rating);
-            const overallPowerRating = totalRatingSum / 19;
-
-            // Algorithm dynamic ceiling mapping logic
-            const probabilityScale = (overallPowerRating - 85) / 15; 
-            const targetWinProbability = Math.max(0.42, Math.min(0.98, 0.5 + (probabilityScale * 0.45)));
-
-            let totalWins = 0;
-            let totalLosses = 0;
-            let fixtureIndex = 1;
-
-            function runFixtureLoop() {
-                if (fixtureIndex <= 26) {
-                    const isFinals = fixtureIndex > 23;
-                    let roundTitle = isFinals ? `FINALS WEEK ${fixtureIndex - 23}` : `ROUND ${fixtureIndex}`;
-                    if (fixtureIndex === 26) roundTitle = "GRAND FINAL";
-
-                    const randRoll = Math.random();
-                    // Finals introduce localized scaling penalty vectors to stress structural depth
-                    const executionCutoff = isFinals ? (targetWinProbability - 0.04) : targetWinProbability;
-
-                    let isWin = randRoll <= executionCutoff;
-                    
-                    // Generate realistic organic score arrays matching professional profiles
-                    const baseSquadScore = Math.round(overallPowerRating + (Math.random() * 40) + 45);
-                    const baseOpponentScore = Math.round(88 + (Math.random() * 40));
-                    
-                    let squadScore, opponentScore;
-                    if (isWin) {
-                        squadScore = Math.max(baseSquadScore, baseOpponentScore + Math.floor(Math.random() * 15) + 1);
-                        opponentScore = baseOpponentScore;
-                        totalWins++;
-                    } else {
-                        opponentScore = Math.max(baseOpponentScore, baseSquadScore + Math.floor(Math.random() * 15) + 1);
-                        squadScore = baseSquadScore;
-                        totalLosses++;
-                    }
-
-                    const matchLine = document.createElement('div');
-                    matchLine.className = isWin ? "text-emerald-400 border-l-2 border-emerald-500 pl-2 py-0.5" : "text-rose-500 border-l-2 border-rose-500 pl-2 py-0.5";
-                    matchLine.innerText = `[${roundTitle}] Squad ${squadScore} def ${isWin ? 'by' : 'opp'} ${opponentScore} -> ${isWin ? 'WIN' : 'LOSS'} (${totalWins}-${totalLosses})`;
-                    
-                    simulationTicker.appendChild(matchLine);
-                    simulationTicker.scrollTop = simulationTicker.scrollHeight;
-
-                    // Absolute Sudden Death Rule for Finals Series
-                    if (isFinals && !isWin) {
-                        const deathLine = document.createElement('div');
-                        deathLine.className = "text-center text-zinc-100 bg-rose-950/50 border border-rose-800 p-2 rounded mt-2 font-bold uppercase tracking-wide";
-                        deathLine.innerText = `🚨 ELIMINATED: High stakes structure failed under Finals pressure. Final Run Record: ${totalWins}-${totalLosses}`;
-                        simulationTicker.appendChild(deathLine);
-                        return;
-                    }
-
-                    fixtureIndex++;
-                    setTimeout(runFixtureLoop, 120);
-                } else {
-                    // Match Loop complete verification logic
-                    const conclusionBanner = document.createElement('div');
-                    conclusionBanner.className = "text-center p-3 rounded mt-3 font-black tracking-wide uppercase text-xs";
-                    if (totalWins === 26) {
-                        conclusionBanner.className += " bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/20";
-                        conclusionBanner.innerText = `🏆 IMMORTALITY CAPTURED: Perfect 26-0 Campaign Documented. Your tactical framework has gone down in history!`;
-                    } else {
-                        conclusionBanner.className += " bg-zinc-800 text-zinc-300 border border-zinc-700";
-                        conclusionBanner.innerText = `🏁 FINISHED: Campaign finished with a strong ${totalWins}-${totalLosses} campaign record. Try again for perfection!`;
-                    }
-                    simulationTicker.appendChild(conclusionBanner);
-                }
-            }
-
-            runFixtureLoop();
-        }
-
-        // Active Event Mapping Wireframes
-        btnMasterSpin.addEventListener('click', handleMasterSpin);
-        selectPosition.addEventListener('change', populateTargetPersonnelList);
-        btnLockPlayer.addEventListener('click', lockSelectionToField);
-        btnStartSimulation.addEventListener('click', executeSimulationEngine);
-
-        btnRerollClub.addEventListener('click', () => {
-            spinsAllotted.club--;
-            btnRerollClub.disabled = true;
-            spinClubData();
-            renderSelectionControls();
-        });
-
-        btnRerollEra.addEventListener('click', () => {
-            spinsAllotted.era--;
-            btnRerollEra.disabled = true;
-            spinEraData();
-            renderSelectionControls();
-        });
-
-        // App Component Initialization boot hook
-        initFieldGrid();
+            document.getElementById('finalFeedbackText').innerText = feedback;
+            document.getElementById('resultModal').style.display = 'flex';
+        };
     </script>
 </body>
 </html>
